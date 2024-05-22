@@ -1,6 +1,14 @@
 import unittest
 
-from textnode import TextNode, split_nodes_delimiter, extract_markdown_images, extract_markdown_links, split_nodes_image, split_nodes_link
+from textnode import (
+  TextNode,
+  split_nodes_delimiter,
+  extract_markdown_images,
+  extract_markdown_links,
+  split_nodes_image,
+  split_nodes_link,
+  text_to_textnodes
+)
 
 class TestTextNode(unittest.TestCase):
   def test_constructor(self):
@@ -67,6 +75,19 @@ class TestTextNode(unittest.TestCase):
     self.assertEqual(new_nodes[2], TextNode(" and ", "text"))
     self.assertEqual(new_nodes[3], TextNode("another", "link", "https://www.example.com/another"))
 
+  def test_text_to_textnodes(self):
+    text = "This is **text** with an *italic* word and a `code block` and an ![image](https://storage.googleapis.com/qvault-webapp-dynamic-assets/course_assets/zjjcJKZ.png) and a [link](https://boot.dev)"
+    new_nodes = text_to_textnodes(text)
+    self.assertEqual(new_nodes[0], TextNode("This is ", "text"))
+    self.assertEqual(new_nodes[1], TextNode("text", "bold"))
+    self.assertEqual(new_nodes[2], TextNode(" with an ", "text"))
+    self.assertEqual(new_nodes[3], TextNode("italic", "italic"))
+    self.assertEqual(new_nodes[4], TextNode(" word and a ", "text"))
+    self.assertEqual(new_nodes[5], TextNode("code block", "code"))
+    self.assertEqual(new_nodes[6], TextNode(" and an ", "text"))
+    self.assertEqual(new_nodes[7], TextNode("image", "img", "https://storage.googleapis.com/qvault-webapp-dynamic-assets/course_assets/zjjcJKZ.png"))
+    self.assertEqual(new_nodes[8], TextNode(" and a ", "text"))
+    self.assertEqual(new_nodes[9], TextNode("link", "link", "https://boot.dev"))
 
 if __name__ == "__main__":
   unittest.main()
