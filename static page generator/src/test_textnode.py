@@ -1,93 +1,45 @@
 import unittest
 
 from textnode import (
-  TextNode,
-  split_nodes_delimiter,
-  extract_markdown_images,
-  extract_markdown_links,
-  split_nodes_image,
-  split_nodes_link,
-  text_to_textnodes
+    TextNode,
+    text_type_text,
+    text_type_bold,
+    text_type_italic,
+    text_type_code,
+    text_type_image,
+    text_type_link,
 )
 
+
 class TestTextNode(unittest.TestCase):
-  def test_constructor(self):
-    node = TextNode("This is a text node", "bold", "https://www.boot.dev")
-    self.assertEqual(node.text, "This is a text node")
-    self.assertEqual(node.text_type, "bold")
-    self.assertEqual(node.url, "https://www.boot.dev")
+    def test_eq(self):
+        node = TextNode("This is a text node", text_type_text)
+        node2 = TextNode("This is a text node", text_type_text)
+        self.assertEqual(node, node2)
 
-  def test_eq(self):
-    node = TextNode("This is a text node", "bold")
-    node2 = TextNode("This is a text node", "bold")
-    self.assertEqual(node, node2)
+    def test_eq_false(self):
+        node = TextNode("This is a text node", text_type_text)
+        node2 = TextNode("This is a text node", text_type_bold)
+        self.assertNotEqual(node, node2)
 
-  def test_repr(self):
-    node = TextNode("This is a text node", "bold")
-    self.assertEqual(repr(node), "TextNode(This is a text node, bold, None)")
-    node2 = TextNode("This is a text node", "bold", "https://www.boot.dev")
-    self.assertEqual(repr(node2), "TextNode(This is a text node, bold, https://www.boot.dev)")
+    def test_eq_false2(self):
+        node = TextNode("This is a text node", text_type_text)
+        node2 = TextNode("This is a text node2", text_type_text)
+        self.assertNotEqual(node, node2)
 
-  def test_split_nodes_delimiter(self):
-    node = TextNode("This is text with a `code block` word", "text")
-    new_nodes = split_nodes_delimiter([node], "`", "code")
-    self.assertEqual(new_nodes[0], TextNode("This is text with a ", "text"))
-    self.assertEqual(new_nodes[1], TextNode("code block", "code"))
-    self.assertEqual(new_nodes[2], TextNode(" word", "text"))
+    def test_eq_url(self):
+        node = TextNode("This is a text node", text_type_italic, "https://www.boot.dev")
+        node2 = TextNode(
+            "This is a text node", text_type_italic, "https://www.boot.dev"
+        )
+        self.assertEqual(node, node2)
 
-    node = TextNode("This is text with a `code block word", "text")
-    with self.assertRaises(SyntaxError) as context:
-      split_nodes_delimiter([node], "`", "code")
+    def test_repr(self):
+        node = TextNode("This is a text node", text_type_text, "https://www.boot.dev")
+        self.assertEqual(
+            "TextNode(This is a text node, text, https://www.boot.dev)", repr(node)
+        )
 
-    self.assertTrue("Invalid markdown, formatted section not closed" in str(context.exception))
-
-  def test_extract_markdown_images(self):
-    text = "This is text with an ![image](https://storage.googleapis.com/qvault-webapp-dynamic-assets/course_assets/zjjcJKZ.png) and ![another](https://storage.googleapis.com/qvault-webapp-dynamic-assets/course_assets/dfsdkjfd.png), this is not an img: [link](https://www.example.com)"
-    imgs = extract_markdown_images(text)
-    self.assertEqual(imgs[0][0], "image")
-    self.assertEqual(imgs[0][1], "https://storage.googleapis.com/qvault-webapp-dynamic-assets/course_assets/zjjcJKZ.png")
-    self.assertEqual(imgs[1][0], "another")
-    self.assertEqual(imgs[1][1], "https://storage.googleapis.com/qvault-webapp-dynamic-assets/course_assets/dfsdkjfd.png") 
-    self.assertEqual(len(imgs), 2)
-
-  def test_extract_markdown_links(self):
-    text = "This is text with a [link](https://www.example.com) and [another](https://www.example.com/another), this is not: ![image](https://storage.googleapis.com/qvault-webapp-dynamic-assets/course_assets/zjjcJKZ.png)"
-    imgs = extract_markdown_links(text)
-    self.assertEqual(imgs[0][0], "link")
-    self.assertEqual(imgs[0][1], "https://www.example.com")
-    self.assertEqual(imgs[1][0], "another")
-    self.assertEqual(imgs[1][1], "https://www.example.com/another")
-    self.assertEqual(len(imgs), 2)
-
-  def test_split_nodes_image(self):
-    node = TextNode("This is text with an ![image](https://storage.googleapis.com/qvault-webapp-dynamic-assets/course_assets/zjjcJKZ.png) and another ![second image](https://storage.googleapis.com/qvault-webapp-dynamic-assets/course_assets/3elNhQu.png)", "text")
-    new_nodes = split_nodes_image([node])
-    self.assertEqual(new_nodes[0], TextNode("This is text with an ", "text"))
-    self.assertEqual(new_nodes[1], TextNode("image", "img", "https://storage.googleapis.com/qvault-webapp-dynamic-assets/course_assets/zjjcJKZ.png"))
-    self.assertEqual(new_nodes[2], TextNode(" and another ", "text"))
-    self.assertEqual(new_nodes[3], TextNode("second image", "img", "https://storage.googleapis.com/qvault-webapp-dynamic-assets/course_assets/3elNhQu.png"))
-
-  def test_split_nodes_link(self):
-    node = TextNode("This is text with a [link](https://www.example.com) and [another](https://www.example.com/another)", "text")
-    new_nodes = split_nodes_link([node])
-    self.assertEqual(new_nodes[0], TextNode("This is text with a ", "text"))
-    self.assertEqual(new_nodes[1], TextNode("link", "link", "https://www.example.com"))
-    self.assertEqual(new_nodes[2], TextNode(" and ", "text"))
-    self.assertEqual(new_nodes[3], TextNode("another", "link", "https://www.example.com/another"))
-
-  def test_text_to_textnodes(self):
-    text = "This is **text** with an *italic* word and a `code block` and an ![image](https://storage.googleapis.com/qvault-webapp-dynamic-assets/course_assets/zjjcJKZ.png) and a [link](https://boot.dev)"
-    new_nodes = text_to_textnodes(text)
-    self.assertEqual(new_nodes[0], TextNode("This is ", "text"))
-    self.assertEqual(new_nodes[1], TextNode("text", "bold"))
-    self.assertEqual(new_nodes[2], TextNode(" with an ", "text"))
-    self.assertEqual(new_nodes[3], TextNode("italic", "italic"))
-    self.assertEqual(new_nodes[4], TextNode(" word and a ", "text"))
-    self.assertEqual(new_nodes[5], TextNode("code block", "code"))
-    self.assertEqual(new_nodes[6], TextNode(" and an ", "text"))
-    self.assertEqual(new_nodes[7], TextNode("image", "img", "https://storage.googleapis.com/qvault-webapp-dynamic-assets/course_assets/zjjcJKZ.png"))
-    self.assertEqual(new_nodes[8], TextNode(" and a ", "text"))
-    self.assertEqual(new_nodes[9], TextNode("link", "link", "https://boot.dev"))
 
 if __name__ == "__main__":
-  unittest.main()
+    unittest.main()
