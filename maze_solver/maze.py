@@ -1,4 +1,5 @@
 import time
+import sys
 import random
 
 from graphics import Cell
@@ -58,6 +59,9 @@ class Maze:
 
     from_cell = self._cells[from_c][from_r]
     to_cell = self._cells[to_c][to_r]
+    self._draw_move_cell(from_cell, to_cell, undo, animate)
+
+  def _draw_move_cell(self, from_cell, to_cell, undo=False, animate=True):
     from_cell.draw_move(to_cell, undo)
     if animate:
       self._animate()
@@ -79,6 +83,11 @@ class Maze:
     self._draw_cell(self.num_cols-1, self.num_rows-1, False)
 
   def break_walls(self):
+    old_limit = sys.getrecursionlimit()
+    new_limit = int((self.num_cols * self.num_rows) / 3)
+    sys.setrecursionlimit(new_limit)
+    print(f"incresed recursion depth from {old_limit} to {new_limit}")
+
     self._break_entrance_and_exit()
     self._break_walls_r(0, 0)
     self._reset_cells_visited()
@@ -129,7 +138,7 @@ class Maze:
     return self._solve_r(0, 0)
 
   def _solve_r(self, c, r):
-    if c == self.num_cols-1 and r == self.num_rows-1:
+    if self.is_target_cell(c, r):
       return True
 
     cell = self._cells[c][r]
@@ -157,4 +166,48 @@ class Maze:
         self._draw_move(c, r, next_c, next_r, True)
       
     return False
+
+  def is_target_cell(self, c, r):
+    return c == self.num_cols-1 and r == self.num_rows-1
+
+  def solve_alpha_start(self):  
+    todo_list = [(0, 0, 0, 0, 0)]
+    while(True):
+      _, old_c, old_r, c, r = todo_list.pop(0)
+
+      cell = self._cells[c][r]
+      cell.visited = True
+      self._draw_move(old_c, old_r, c, r)
+
+      if self.is_target_cell(c, r):
+        return True      
+        
+      neighbors = []
+      if not cell.has_bottom_wall:
+        neighbors.append((c+1, r))
+      if not cell.has_top_wall and c > 0:
+        neighbors.append((c-1, r))
+      if not cell.has_right_wall:
+        neighbors.append((c, r+1))
+      if not cell.has_left_wall:
+        neighbors.append((c, r-1))
+      
+      for (next_c, next_r) in neighbors:
+        if self._cells[next_c][next_r].visited:
+          continue
+
+        score = self.alpha_stat_get_score(next_c, next_r)
+        inserted = False
+        for i in range(len(todo_list)):
+          if score < todo_list[i][0]:
+            todo_list.insert(i, (score, c, r, next_c, next_r))
+            inserted = True
+            break
+        if not inserted:
+          todo_list.append((score, c, r, next_c, next_r))
+          
+    return False
+
+  def alpha_stat_get_score(self, c, r):
+    return abs(self.num_cols - c) + abs(self.num_rows - r)
 
