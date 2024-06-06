@@ -1,0 +1,27 @@
+{
+  "name": "web_crawler",
+  "version": "1.0.0",
+  "description": "A web crawler based on boot.dev",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "start": "node index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TrooperCrypto/boot_dev.git"
+  },
+  "author": "Trooper",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/TrooperCrypto/boot_dev/issues"
+  },
+  "homepage": "https://github.com/TrooperCrypto/boot_dev#readme",
+  "devDependencies": {
+    "jest": "^29.7.0"
+  },
+  "dependencies": {
+    "jsdom": "^24.1.0"
+  }
+}
