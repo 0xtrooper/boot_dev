@@ -61,13 +61,12 @@ export async function crawlPage(startURL, onlyCrawlPage=true, maxCalls=1000) {
     try {
       newURLs = await getURLsFromPage(url)
     } catch(err) {
-      // console.log(`Failed to fetch "${url}: ${err.message}`)
+      console.log(`Failed to fetch "${url}: ${err.message}`)
       continue
     }
 
     console.log(`Fetched ${url}, ${toVisit.length < maxCalls ? toVisit.length : maxCalls} remaining`)
     maxCalls--
-    // await new Promise(resolve => setTimeout(resolve, 2000))
 
     for(let newURL of newURLs) {
       try {
@@ -91,9 +90,6 @@ export async function crawlPage(startURL, onlyCrawlPage=true, maxCalls=1000) {
         console.log(`Failed to normalize ${newURL}, ${err.message}`)
       }
     }
-
-    // await new Promise(resolve => setTimeout(resolve, 5000))
-    // console.log(linksFound)
   }
 
   return linksFound
