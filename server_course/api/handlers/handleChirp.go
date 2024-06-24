@@ -17,7 +17,7 @@ func PostValidateChirp(l *slog.Logger) gin.HandlerFunc {
 	logger := l.With("handler", "PostValidateChirp")
 
 	return func(c *gin.Context) {
-		ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond * 250)
+		ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*250)
 		defer cancel()
 
 		var chrip entities.Chirp
@@ -62,14 +62,14 @@ func GetChirpByID(l *slog.Logger, chirpStore *db.DB) gin.HandlerFunc {
 		if chirpIDString == "" {
 			logger.Debug("chirpID not set")
 			c.AbortWithError(http.StatusBadRequest, errors.New("chirpID not set"))
-			return			
+			return
 		}
 
 		chirpID, err := strconv.Atoi(chirpIDString)
 		if err != nil {
 			logger.Debug("chirpID not an int", slog.String("err", err.Error()))
 			c.AbortWithError(http.StatusBadRequest, errors.New("chirpID not an int"))
-			return			
+			return
 		}
 
 		chirps, err := chirpStore.GetChirp(chirpID)
@@ -77,7 +77,7 @@ func GetChirpByID(l *slog.Logger, chirpStore *db.DB) gin.HandlerFunc {
 			if errors.Is(err, db.ErrDoesNotExist) {
 				c.AbortWithError(http.StatusNotFound, err)
 			}
-			
+
 			logger.Error("failed to GetChirps", slog.String("err", err.Error()))
 			c.AbortWithError(http.StatusInternalServerError, err)
 			return
@@ -91,7 +91,7 @@ func PostChirp(l *slog.Logger, chirpStore *db.DB) gin.HandlerFunc {
 	logger := l.With("handler", "PostChirp")
 
 	return func(c *gin.Context) {
-		ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond * 250)
+		ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*250)
 		defer cancel()
 
 		var chrip entities.Chirp

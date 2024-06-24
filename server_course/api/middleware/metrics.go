@@ -7,7 +7,7 @@ import (
 )
 
 type metrics struct {
-	logger *slog.Logger
+	logger         *slog.Logger
 	fileserverHits int
 }
 

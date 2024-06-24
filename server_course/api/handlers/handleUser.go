@@ -14,7 +14,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-
 func GetUser(l *slog.Logger, userStore *db.DB) gin.HandlerFunc {
 	logger := l.With("handler", "GetUser")
 
@@ -38,14 +37,14 @@ func GetUserByID(l *slog.Logger, userStore *db.DB) gin.HandlerFunc {
 		if userIDString == "" {
 			logger.Debug("userID not set")
 			c.AbortWithError(http.StatusBadRequest, errors.New("userID not set"))
-			return			
+			return
 		}
 
 		userID, err := strconv.Atoi(userIDString)
 		if err != nil {
 			logger.Debug("userID not an int", slog.String("err", err.Error()))
 			c.AbortWithError(http.StatusBadRequest, errors.New("userID not an int"))
-			return			
+			return
 		}
 
 		user, err := userStore.GetUser(userID)
@@ -53,7 +52,7 @@ func GetUserByID(l *slog.Logger, userStore *db.DB) gin.HandlerFunc {
 			if errors.Is(err, db.ErrDoesNotExist) {
 				c.AbortWithError(http.StatusNotFound, err)
 			}
-			
+
 			logger.Error("failed to GetUser", slog.String("err", err.Error()))
 			c.AbortWithError(http.StatusInternalServerError, err)
 			return
@@ -67,7 +66,7 @@ func PostUser(l *slog.Logger, userStore *db.DB) gin.HandlerFunc {
 	logger := l.With("handler", "PostUser")
 
 	return func(c *gin.Context) {
-		ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond * 250)
+		ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*250)
 		defer cancel()
 
 		var user entities.User
@@ -103,7 +102,7 @@ func PostUserLogin(l *slog.Logger, userStore *db.DB) gin.HandlerFunc {
 	logger := l.With("handler", "PostUserLogin")
 
 	return func(c *gin.Context) {
-		ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond * 250)
+		ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*250)
 		defer cancel()
 
 		var user entities.User
@@ -126,7 +125,7 @@ func PostUserLogin(l *slog.Logger, userStore *db.DB) gin.HandlerFunc {
 
 		validPassword, err := user.ValidPassword(storedUser.Password)
 		if err != nil {
-			logger.Error("failed to ValidPassword", 
+			logger.Error("failed to ValidPassword",
 				slog.String("expected password", storedUser.Password),
 				slog.String("got password", user.Password),
 				slog.String("err", err.Error()),
@@ -143,7 +142,7 @@ func PostUserLogin(l *slog.Logger, userStore *db.DB) gin.HandlerFunc {
 		if user.ExpiresInSeconds > 0 {
 			storedUser.Token, err = common.GenerateJWT(storedUser.ID, user.ExpiresInSeconds)
 		} else {
-			storedUser.Token, err = common.GenerateJWT(storedUser.ID, 24 * 60 * 60) // 24h
+			storedUser.Token, err = common.GenerateJWT(storedUser.ID, 24*60*60) // 24h
 		}
 
 		if err != nil {
@@ -167,7 +166,7 @@ func PutUser(l *slog.Logger, userStore *db.DB) gin.HandlerFunc {
 	logger := l.With("handler", "PutUser")
 
 	return func(c *gin.Context) {
-		ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond * 250)
+		ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*250)
 		defer cancel()
 
 		var user entities.User

@@ -9,11 +9,11 @@ import (
 )
 
 type User struct {
-	ID    int    `json:"id"`
-	Email string `json:"email"`
-	Password string `json:"password,omitempty"`
-	ExpiresInSeconds int `json:"expires_in_seconds,omitempty"`	
-	Token string `json:"token"`
+	ID               int    `json:"id"`
+	Email            string `json:"email"`
+	Password         string `json:"password,omitempty"`
+	ExpiresInSeconds int    `json:"expires_in_seconds,omitempty"`
+	Token            string `json:"token"`
 }
 
 func (u *User) Valid(ctx context.Context) map[string]string {
@@ -24,7 +24,7 @@ func (u *User) Valid(ctx context.Context) map[string]string {
 	if u.Email == "" {
 		problems["no email"] = "no email set"
 	}
-	
+
 	return problems
 }
 
@@ -51,5 +51,5 @@ func (u *User) EncryptPassword() (User, error) {
 	copyUser := u
 	bytePassword, err := bcrypt.GenerateFromPassword([]byte(copyUser.Password), 5)
 	copyUser.Password = string(bytePassword)
-	return *copyUser, err	
+	return *copyUser, err
 }

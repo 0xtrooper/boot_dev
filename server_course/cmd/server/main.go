@@ -20,7 +20,6 @@ import (
 func run(ctx context.Context, l *slog.Logger, debugMode bool) error {
 	ctx, stop := signal.NotifyContext(ctx, os.Interrupt)
 	defer stop()
-	
 
 	db, err := db.NewDB("./db")
 	if err != nil {
@@ -32,7 +31,7 @@ func run(ctx context.Context, l *slog.Logger, debugMode bool) error {
 	router := api.NewServer(l, middleware, db)
 
 	srv := &http.Server{
-		Addr: ":8080",
+		Addr:    ":8080",
 		Handler: router,
 	}
 
@@ -69,7 +68,7 @@ func run(ctx context.Context, l *slog.Logger, debugMode bool) error {
 
 func main() {
 	godotenv.Load()
-	
+
 	slog.SetLogLoggerLevel(-4)
 	logger := slog.Default()
 

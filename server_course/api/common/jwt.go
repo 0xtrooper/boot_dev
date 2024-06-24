@@ -10,25 +10,24 @@ import (
 	"github.com/golang-jwt/jwt"
 )
 
-func GenerateJWT(userID, expires int) (string, error){
+func GenerateJWT(userID, expires int) (string, error) {
 	jwtSecret := os.Getenv("JWT_SECRET")
 
 	expiresInSeconds := time.Now().UTC().Add(time.Duration(expires))
-	
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"iss": "chirpy",
 		"iat": time.Now().UTC().Unix(),
-		"exp" : expiresInSeconds.Unix(),
-		"sub" : userID,
+		"exp": expiresInSeconds.Unix(),
+		"sub": userID,
 	})
 
-	return token.SignedString([]byte(jwtSecret))	
+	return token.SignedString([]byte(jwtSecret))
 }
 
 func ValidJWT(tokenString string) (int, error) {
 	jwtSecret := os.Getenv("JWT_SECRET")
-	
+
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
@@ -54,7 +53,7 @@ func ValidJWT(tokenString string) (int, error) {
 	if !ok {
 		return 0, errors.New("issuer is wrong")
 	}
-	if iss, ok := issInter.(string); !ok ||!strings.EqualFold(iss, "chirpy") {
+	if iss, ok := issInter.(string); !ok || !strings.EqualFold(iss, "chirpy") {
 		return 0, errors.New("issuer is wrong")
 	}
 

@@ -35,11 +35,9 @@ func addRoutes(r *gin.Engine, l *slog.Logger, m middleware.Middleware, db *db.DB
 	api.PUT("/users", middleware.JWTMiddleware(l), handlers.PutUser(l, db))
 	api.POST("/login", handlers.PostUserLogin(l, db))
 
-	
 	admin := r.Group("/admin")
 	admin.GET("/metrics", func(c *gin.Context) {
 		responseText := fmt.Sprintf("<html>\n\n<body>\n\t<h1>Welcome, Chirpy Admin</h1>\n\t<p>Chirpy has been visited %d times!</p>\n</body>\n\n</html>", m.Metrics.Get())
 		c.Data(http.StatusOK, "text/html; charset=utf-8", []byte(responseText))
 	})
 }
-

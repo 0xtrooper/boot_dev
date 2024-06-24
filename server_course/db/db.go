@@ -16,29 +16,28 @@ var (
 
 type DBStructure struct {
 	Chirps map[int]entities.Chirp `json:"chirps"`
-	Users map[int]entities.User `json:"users"`
-	Index int `json:"index"`
-
+	Users  map[int]entities.User  `json:"users"`
+	Index  int                    `json:"index"`
 }
 
 type DB struct {
 	store DBStructure
-	path string
-	mux  *sync.RWMutex
+	path  string
+	mux   *sync.RWMutex
 }
 
 func NewDB(p string) (*DB, error) {
 	db := &DB{
 		store: DBStructure{
 			Chirps: make(map[int]entities.Chirp),
-			Users: make(map[int]entities.User),
-			Index: 1,
+			Users:  make(map[int]entities.User),
+			Index:  1,
 		},
 		path: p + "/database.json",
-		mux: &sync.RWMutex{},
+		mux:  &sync.RWMutex{},
 	}
 
-	return db, db.loadDB()	
+	return db, db.loadDB()
 }
 
 func (db *DB) StoreChirp(c entities.Chirp) (entities.Chirp, error) {
@@ -96,7 +95,7 @@ func (db *DB) GetUserByEmail(requestedEmail string) (entities.User, error) {
 			return storedUser, nil
 		}
 	}
-	
+
 	return entities.User{}, ErrDoesNotExist
 }
 
@@ -123,8 +122,8 @@ func (db *DB) GetChirpsSlice() ([]entities.Chirp, error) {
 		i++
 	}
 
-	sort.Slice(chirps, func(i, j int)bool{return chirps[i].ID < chirps[j].ID})
-	
+	sort.Slice(chirps, func(i, j int) bool { return chirps[i].ID < chirps[j].ID })
+
 	return chirps, nil
 }
 
@@ -139,8 +138,8 @@ func (db *DB) GetUsersSlice() ([]entities.User, error) {
 		i++
 	}
 
-	sort.Slice(users, func(i, j int)bool{return users[i].ID < users[j].ID})
-	
+	sort.Slice(users, func(i, j int) bool { return users[i].ID < users[j].ID })
+
 	return users, nil
 }
 
@@ -174,7 +173,7 @@ func (db *DB) Reset() error {
 	return nil
 }
 
-func (db *DB) loadDB() (error) {
+func (db *DB) loadDB() error {
 	db.mux.Lock()
 	defer db.mux.Unlock()
 

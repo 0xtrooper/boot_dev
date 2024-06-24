@@ -8,7 +8,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-
 func NewServer(l *slog.Logger, m middleware.Middleware, db *db.DB) *gin.Engine {
 	router := gin.Default()
 	addRoutes(
