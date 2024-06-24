@@ -13,6 +13,8 @@ import (
 	"server_course/api"
 	"server_course/api/middleware"
 	"server_course/db"
+
+	"github.com/joho/godotenv"
 )
 
 func run(ctx context.Context, l *slog.Logger, debugMode bool) error {
@@ -66,6 +68,9 @@ func run(ctx context.Context, l *slog.Logger, debugMode bool) error {
 }
 
 func main() {
+	godotenv.Load()
+	
+	slog.SetLogLoggerLevel(-4)
 	logger := slog.Default()
 
 	dbg := flag.Bool("debug", false, "Enable debug mode")

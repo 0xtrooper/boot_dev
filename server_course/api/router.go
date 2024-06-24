@@ -32,6 +32,8 @@ func addRoutes(r *gin.Engine, l *slog.Logger, m middleware.Middleware, db *db.DB
 	api.GET("/users", handlers.GetUser(l, db))
 	api.GET("/users/:userID", handlers.GetUserByID(l, db))
 	api.POST("/users", handlers.PostUser(l, db))
+	api.PUT("/users", middleware.JWTMiddleware(l), handlers.PutUser(l, db))
+	api.POST("/login", handlers.PostUserLogin(l, db))
 
 	
 	admin := r.Group("/admin")

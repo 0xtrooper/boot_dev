@@ -6,11 +6,12 @@ import (
 	"os"
 	"server_course/entities"
 	"sort"
+	"strings"
 	"sync"
 )
 
 var (
-	ErrDoesNotExist = errors.New("chirp does not exist")
+	ErrDoesNotExist = errors.New("does not exist")
 )
 
 type DBStructure struct {
@@ -53,7 +54,11 @@ func (db *DB) StoreChirp(c entities.Chirp) (entities.Chirp, error) {
 func (db *DB) StoreUser(u entities.User) (entities.User, error) {
 	db.mux.Lock()
 	u.ID = db.store.Index // idk
-	db.store.Users[db.store.Index] = u
+	encryptedUser, err := u.EncryptPassword()
+	if err != nil {
+		return entities.User{}, err
+	}
+	db.store.Users[db.store.Index] = encryptedUser
 	db.store.Index++
 	db.mux.Unlock() // unlock manual cause writeDB relocks
 
@@ -78,6 +83,21 @@ func (db *DB) GetUser(userID int) (entities.User, error) {
 	} else {
 		return entities.User{}, ErrDoesNotExist
 	}
+}
+
+func (db *DB) GetUserByEmail(requestedEmail string) (entities.User, error) {
+	allUsers, err := db.GetUsers()
+	if err != nil {
+		return entities.User{}, err
+	}
+
+	for _, storedUser := range allUsers {
+		if strings.EqualFold(storedUser.Email, requestedEmail) {
+			return storedUser, nil
+		}
+	}
+	
+	return entities.User{}, ErrDoesNotExist
 }
 
 func (db *DB) GetChirps() (map[int]entities.Chirp, error) {
@@ -122,6 +142,24 @@ func (db *DB) GetUsersSlice() ([]entities.User, error) {
 	sort.Slice(users, func(i, j int)bool{return users[i].ID < users[j].ID})
 	
 	return users, nil
+}
+
+func (db *DB) UpdateUser(u entities.User) (entities.User, error) {
+	db.mux.RLock()
+	defer db.mux.RUnlock()
+	oldUser, exits := db.store.Users[u.ID]
+	if !exits {
+		return entities.User{}, ErrDoesNotExist
+	}
+
+	encryptedUser, err := u.EncryptPassword()
+	if err != nil {
+		return entities.User{}, err
+	}
+	oldUser.Email = u.Email
+	oldUser.Password = encryptedUser.Password
+	db.store.Users[u.ID] = oldUser
+	return oldUser, nil
 }
 
 func (db *DB) Reset() error {
