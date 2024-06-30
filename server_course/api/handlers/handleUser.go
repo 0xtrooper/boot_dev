@@ -142,12 +142,26 @@ func PostUserLogin(l *slog.Logger, userStore *db.DB) gin.HandlerFunc {
 		if user.ExpiresInSeconds > 0 {
 			storedUser.Token, err = common.GenerateJWT(storedUser.ID, user.ExpiresInSeconds)
 		} else {
-			storedUser.Token, err = common.GenerateJWT(storedUser.ID, 24*60*60) // 24h
+			storedUser.Token, err = common.GenerateJWT(storedUser.ID, 60*60) // 1h
 		}
 
 		if err != nil {
 			logger.Error("failed to GenerateJWT", slog.Int("userID", storedUser.ID), slog.String("err", err.Error()))
 			c.AbortWithError(http.StatusBadRequest, err)
+			return
+		}
+
+		refreshToken, err := common.GetRandomString(32)
+		if err != nil {
+			logger.Error("failed to GetRandomString", slog.Int("userID", storedUser.ID), slog.String("err", err.Error()))
+		} else {
+			storedUser.RefreshToken = refreshToken
+			storedUser.RefreshExpiresInSeconds = 60 * 60 * 24 * 60 // 60d
+		}
+
+		_, err = userStore.UpdateUserTokens(storedUser)
+		if err != nil {
+			c.AbortWithStatus(http.StatusInternalServerError)
 			return
 		}
 
@@ -203,5 +217,79 @@ func PutUser(l *slog.Logger, userStore *db.DB) gin.HandlerFunc {
 		}
 
 		c.Data(http.StatusOK, "application/json", userByte)
+	}
+}
+
+func PostRefresh(l *slog.Logger, userStore *db.DB) gin.HandlerFunc {
+	logger := l.With("handler", "PostRefresh")
+
+	return func(c *gin.Context) {
+		refreshToken, err := common.GetAuthorizationFromHeader(c)
+		if err != nil {
+			c.AbortWithError(http.StatusBadRequest, err)
+			return
+		}
+
+		userID, found, err := common.ValidRefreshToken(userStore, refreshToken)
+		if err != nil {
+			logger.Error("failed to ValidRefreshToken", slog.String("err", err.Error()))
+			c.AbortWithError(http.StatusInternalServerError, err)
+			return
+		}
+
+		if !found {
+			c.AbortWithStatus(http.StatusUnauthorized)
+			return
+		}
+
+		jwtToken, err := common.GenerateJWT(userID, 60*60) // 1h
+		if err != nil {
+			logger.Error("failed to GenerateJWT", slog.Int("userID", userID), slog.String("err", err.Error()))
+			c.AbortWithError(http.StatusBadRequest, err)
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{"token": jwtToken})
+	}
+}
+
+func PostRevoke(l *slog.Logger, userStore *db.DB) gin.HandlerFunc {
+	logger := l.With("handler", "PostRevoke")
+
+	return func(c *gin.Context) {
+		refreshToken, err := common.GetAuthorizationFromHeader(c)
+		if err != nil {
+			c.AbortWithError(http.StatusBadRequest, err)
+			return
+		}
+
+		userID, found, err := common.ValidRefreshToken(userStore, refreshToken)
+		if err != nil {
+			logger.Error("failed to ValidRefreshToken", slog.String("err", err.Error()))
+			c.AbortWithError(http.StatusInternalServerError, err)
+			return
+		}
+
+		if !found {
+			c.AbortWithStatus(http.StatusUnauthorized)
+			return
+		}
+
+		storedUser, err := userStore.GetUser(userID)
+		if err != nil {
+			c.AbortWithStatus(http.StatusInternalServerError)
+			return
+		}
+
+		storedUser.RefreshExpiresInSeconds = 0
+		storedUser.RefreshToken = ""
+
+		_, err = userStore.UpdateUserTokens(storedUser)
+		if err != nil {
+			c.AbortWithStatus(http.StatusInternalServerError)
+			return
+		}
+
+		c.Status(http.StatusNoContent)
 	}
 }

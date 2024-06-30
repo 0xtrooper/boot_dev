@@ -15,9 +15,10 @@ var (
 )
 
 type DBStructure struct {
-	Chirps map[int]entities.Chirp `json:"chirps"`
-	Users  map[int]entities.User  `json:"users"`
-	Index  int                    `json:"index"`
+	Chirps     map[int]entities.Chirp `json:"chirps"`
+	Users      map[int]entities.User  `json:"users"`
+	ChirpIndex int                    `json:"chirp_index"`
+	UserIndex  int                    `json:"user_index"`
 }
 
 type DB struct {
@@ -29,9 +30,10 @@ type DB struct {
 func NewDB(p string) (*DB, error) {
 	db := &DB{
 		store: DBStructure{
-			Chirps: make(map[int]entities.Chirp),
-			Users:  make(map[int]entities.User),
-			Index:  1,
+			Chirps:     make(map[int]entities.Chirp),
+			Users:      make(map[int]entities.User),
+			ChirpIndex: 1,
+			UserIndex:  1,
 		},
 		path: p + "/database.json",
 		mux:  &sync.RWMutex{},
@@ -42,9 +44,9 @@ func NewDB(p string) (*DB, error) {
 
 func (db *DB) StoreChirp(c entities.Chirp) (entities.Chirp, error) {
 	db.mux.Lock()
-	c.ID = db.store.Index // idk
-	db.store.Chirps[db.store.Index] = c
-	db.store.Index++
+	c.ID = db.store.ChirpIndex // idk
+	db.store.Chirps[db.store.ChirpIndex] = c
+	db.store.ChirpIndex++
 	db.mux.Unlock() // unlock manual cause writeDB relocks
 
 	return c, db.writeDB()
@@ -52,16 +54,24 @@ func (db *DB) StoreChirp(c entities.Chirp) (entities.Chirp, error) {
 
 func (db *DB) StoreUser(u entities.User) (entities.User, error) {
 	db.mux.Lock()
-	u.ID = db.store.Index // idk
+	u.ID = db.store.UserIndex // idk
 	encryptedUser, err := u.EncryptPassword()
 	if err != nil {
 		return entities.User{}, err
 	}
-	db.store.Users[db.store.Index] = encryptedUser
-	db.store.Index++
+	db.store.Users[db.store.UserIndex] = encryptedUser
+	db.store.UserIndex++
 	db.mux.Unlock() // unlock manual cause writeDB relocks
 
 	return u, db.writeDB()
+}
+
+func (db *DB) DeleteChirp(chirpID int) error {
+	db.mux.Lock()
+	delete(db.store.Chirps, chirpID)
+	db.mux.Unlock() // unlock manual cause writeDB relocks
+
+	return db.writeDB()
 }
 
 func (db *DB) GetChirp(chirpID int) (entities.Chirp, error) {
@@ -143,22 +153,75 @@ func (db *DB) GetUsersSlice() ([]entities.User, error) {
 	return users, nil
 }
 
-func (db *DB) UpdateUser(u entities.User) (entities.User, error) {
-	db.mux.RLock()
-	defer db.mux.RUnlock()
-	oldUser, exits := db.store.Users[u.ID]
+func (db *DB) UpdateUser(newUser entities.User) (entities.User, error) {
+	db.mux.Lock()
+	defer db.mux.Unlock()
+	oldUser, exits := db.store.Users[newUser.ID]
 	if !exits {
 		return entities.User{}, ErrDoesNotExist
 	}
 
-	encryptedUser, err := u.EncryptPassword()
+	if newUser.Password != "" {
+		encryptedUser, err := newUser.EncryptPassword()
+		if err != nil {
+			return entities.User{}, err
+		}
+		oldUser.Password = encryptedUser.Password
+	}
+
+	oldUser.Email = newUser.Email
+	oldUser.Token = newUser.Token
+	oldUser.ExpiresInSeconds = newUser.ExpiresInSeconds
+	oldUser.RefreshToken = newUser.RefreshToken
+	oldUser.RefreshExpiresInSeconds = newUser.RefreshExpiresInSeconds
+	db.store.Users[newUser.ID] = oldUser
+	return oldUser, nil
+}
+
+func (db *DB) UpdateUserTokens(newUser entities.User) (entities.User, error) {
+	db.mux.Lock()
+	defer db.mux.Unlock()
+	oldUser, exits := db.store.Users[newUser.ID]
+	if !exits {
+		return entities.User{}, ErrDoesNotExist
+	}
+
+	oldUser.Token = newUser.Token
+	oldUser.ExpiresInSeconds = newUser.ExpiresInSeconds
+	oldUser.RefreshToken = newUser.RefreshToken
+	oldUser.RefreshExpiresInSeconds = newUser.RefreshExpiresInSeconds
+	db.store.Users[newUser.ID] = oldUser
+	return oldUser, nil
+}
+
+func (db *DB) UpdateUserEmailAndPassword(newUser entities.User) (entities.User, error) {
+	db.mux.Lock()
+	defer db.mux.Unlock()
+	oldUser, exits := db.store.Users[newUser.ID]
+	if !exits {
+		return entities.User{}, ErrDoesNotExist
+	}
+
+	encryptedUser, err := newUser.EncryptPassword()
 	if err != nil {
 		return entities.User{}, err
 	}
-	oldUser.Email = u.Email
+	oldUser.Email = newUser.Email
 	oldUser.Password = encryptedUser.Password
-	db.store.Users[u.ID] = oldUser
 	return oldUser, nil
+}
+
+func (db *DB) UpdateUserRedStatus(userID int, status bool) (entities.User, error) {
+	db.mux.Lock()
+	defer db.mux.Unlock()
+	user, exits := db.store.Users[userID]
+	if !exits {
+		return entities.User{}, ErrDoesNotExist
+	}
+
+	user.IsChirpyRed = status
+	db.store.Users[userID] = user
+	return db.store.Users[userID], nil
 }
 
 func (db *DB) Reset() error {

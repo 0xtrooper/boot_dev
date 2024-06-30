@@ -9,11 +9,14 @@ import (
 )
 
 type User struct {
-	ID               int    `json:"id"`
-	Email            string `json:"email"`
-	Password         string `json:"password,omitempty"`
-	ExpiresInSeconds int    `json:"expires_in_seconds,omitempty"`
-	Token            string `json:"token"`
+	ID                      int    `json:"id"`
+	Email                   string `json:"email"`
+	Password                string `json:"password,omitempty"`
+	IsChirpyRed             bool   `json:"is_chirpy_red"`
+	Token                   string `json:"token"`
+	ExpiresInSeconds        int    `json:"expires_in_seconds,omitempty"`
+	RefreshToken            string `json:"refresh_token"`
+	RefreshExpiresInSeconds int    `json:"refresh_expires_in_seconds,omitempty"`
 }
 
 func (u *User) Valid(ctx context.Context) map[string]string {
@@ -41,9 +44,10 @@ func (u *User) ValidPassword(expectedPassword string) (bool, error) {
 }
 
 func (u *User) MarshalJSONCustom() ([]byte, error) {
-	copyUser := u
+	copyUser := *u
 	copyUser.Password = ""
 	copyUser.ExpiresInSeconds = 0
+	copyUser.RefreshExpiresInSeconds = 0
 	return json.Marshal(copyUser)
 }
 

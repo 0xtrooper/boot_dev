@@ -1,25 +1,30 @@
 package common
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"os"
+	"server_course/db"
+	"strconv"
 	"strings"
 	"time"
 
-	"github.com/golang-jwt/jwt"
+	"github.com/gin-gonic/gin"
+	jwt "github.com/golang-jwt/jwt/v5"
 )
 
 func GenerateJWT(userID, expires int) (string, error) {
 	jwtSecret := os.Getenv("JWT_SECRET")
 
-	expiresInSeconds := time.Now().UTC().Add(time.Duration(expires))
-
+	now := time.Now().UTC()
+	expiresInSeconds := now.Add(time.Second * time.Duration(expires))
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"iss": "chirpy",
-		"iat": time.Now().UTC().Unix(),
+		"iat": now.Unix(),
 		"exp": expiresInSeconds.Unix(),
-		"sub": userID,
+		"sub": strconv.Itoa(userID),
 	})
 
 	return token.SignedString([]byte(jwtSecret))
@@ -39,31 +44,70 @@ func ValidJWT(tokenString string) (int, error) {
 		return 0, err
 	}
 
-	claims, ok := token.Claims.(jwt.MapClaims)
-	if !ok {
-		return 0, errors.New("could not parse claims")
+	if !token.Valid {
+		return 0, errors.New("token is not valid")
 	}
 
-	err = claims.Valid()
+	subString, err := token.Claims.GetSubject()
 	if err != nil {
 		return 0, err
 	}
 
-	issInter, ok := claims["iss"]
-	if !ok {
-		return 0, errors.New("issuer is wrong")
-	}
-	if iss, ok := issInter.(string); !ok || !strings.EqualFold(iss, "chirpy") {
-		return 0, errors.New("issuer is wrong")
+	sub, err := strconv.Atoi(subString)
+	if err != nil {
+		return 0, err
 	}
 
-	subInter, ok := claims["sub"]
-	if !ok {
-		return 0, errors.New("no subject")
+	return sub, nil
+}
+
+func GetRandomString(length int) (string, error) {
+	b := make([]byte, length)
+	_, err := rand.Read(b)
+	if err != nil {
+		return "", err
 	}
-	sub, ok := subInter.(float64)
-	if !ok {
-		return 0, errors.New("no subject")
+
+	return hex.EncodeToString(b), nil
+}
+
+func GetAuthorizationFromHeader(c *gin.Context) (string, error) {
+	token := c.GetHeader("Authorization")
+	if token == "" {
+		return "", errors.New("'Authorization' header not set")
 	}
-	return int(sub), nil
+
+	parts := strings.Fields(token)
+	if len(parts) != 2 {
+		return "", errors.New("bad 'Authorization' header format")
+	}
+
+	if !strings.EqualFold(parts[0], "Bearer") {
+		return "", errors.New("'Authorization' header not a 'Bearer' token")
+	}
+
+	return parts[1], nil
+}
+
+func ValidRefreshToken(userStore *db.DB, refreshToken string) (int, bool, error) {
+	users, err := userStore.GetUsers()
+	if err != nil {
+		return 0, false, err
+	}
+
+	found := false
+	var userID int
+	for _, user := range users {
+		if strings.EqualFold(user.RefreshToken, refreshToken) {
+			userID = user.ID
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		return 0, false, nil
+	}
+
+	return userID, true, nil
 }
